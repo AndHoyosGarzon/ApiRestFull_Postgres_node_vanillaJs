@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>panel Administrador</title>
+  </head>
+  <body>
+    <h1>Admin panel</h1>
+
+    <h2>Vet Users</h2>
+    <ul id="clientVet"></ul>
+
+    <h2>Client Users</h2>
+    <ul id="clientUsers"></ul>
+
+    <button id="logout">Logout</button>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+      const logout = document.querySelector("#logout");
+      const clientVets = document.querySelector("#clientVet");
+      const clientUsers = document.querySelector("#clientUsers");
+
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        window.location.href = "/login.html";
+      }
+
+      logout.addEventListener("click", () => {
+        localStorage.removeItem("token");
+        window.location.href = "/login.html";
+      });
+
+      axios
+        .get("/api/v1/users", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        .then(({ data }) => {
+          const { message: users } = data;
+
+          console.log(users);
+
+          users.forEach((user) => {
+            const li = document.createElement("li");
+            li.textContent = user.username;
+
+            if (user.role_id === 1) {
+              return;
+            }
+
+            if (user.role_id === 3) {
+              const button = document.createElement("button");
+              button.textContent = "Promove to vet";
+              button.addEventListener("click", async () => {
+                if (
+                  !confirm("Are you sure you want to promote this user to vet?")
+                ) {
+                  return;
+                }
+                try {
+                  const { data } = await axios.put(
+                    `/api/v1/users/update-role-vet/${user.uid}`,
+                    {},
+                    {
+                      headers: {
+                        Authorization: `Bearer ${token}`,
+                      },
+                    }
+                  );
+
+                  console.log(data);
+                  window.location.reload();
+                } catch (error) {
+                  console.log(error);
+                }
+              });
+
+              li.appendChild(button);
+              clientUsers.appendChild(li);
+              return;
+            }
+
+            clientVets.appendChild(li);
+          });
+        })
+        .catch((error) => console.log(error));
+    </script>
+  </body>
+</html>
